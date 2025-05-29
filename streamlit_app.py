@@ -1,0 +1,511 @@
+# streamlit_app.py
+# Streamlit Web Interface for Azure DevOps Work Item Q&A System
+# Provides user-friendly web interface for RAG-based work item queries
+
+import streamlit as st
+import pandas as pd
+import json
+from datetime import datetime
+from typing import Dict, Any, List
+from ado_qa_system import ADOQASystem
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Page configuration
+st.set_page_config(
+    page_title="Azure DevOps Agent",
+    page_icon="🔍",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #0078d4;
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: linear-gradient(90deg, #e7f3ff, #ffffff);
+        border-radius: 10px;
+        border: 2px solid #0078d4;
+    }
+    .question-box {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #0078d4;
+        margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .answer-box {
+        background-color: #e7f3ff;
+        padding: 1.2rem;
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+        margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .confidence-high {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .confidence-medium {
+        color: #ffc107;
+        font-weight: bold;
+    }
+    .confidence-low {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .confidence-error {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .source-card {
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        margin: 0.5rem 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .metric-card {
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+    }
+    .stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+@st.cache_resource
+def load_qa_system():
+    """Load and cache the QA system"""
+    try:
+        return ADOQASystem()
+    except Exception as e:
+        st.error(f"Failed to initialize QA system: {e}")
+        return None
+
+def format_confidence(confidence: str) -> str:
+    """Format confidence level with appropriate styling"""
+    confidence_classes = {
+        "high": "confidence-high",
+        "medium": "confidence-medium", 
+        "low": "confidence-low",
+        "error": "confidence-error"
+    }
+    class_name = confidence_classes.get(confidence, "confidence-low")
+    return f'<span class="{class_name}">{confidence.upper()}</span>'
+
+def display_system_stats(qa_system: ADOQASystem):
+    """Display system statistics in the sidebar"""
+    st.sidebar.header("📊 System Overview")
+    
+    stats = qa_system.get_system_stats()
+    
+    if "error" not in stats:
+        # Key metrics
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            st.metric("📄 Total Chunks", stats.get('total_chunks', 0))
+            st.metric("🔧 Work Items", stats.get('unique_workitems', 0))
+        with col2:
+            st.metric("📏 Avg Chunks/Item", stats.get('avg_chunks_per_workitem', 0))
+            st.metric("🧠 Embedding Dim", stats.get('embedding_dimension', 0))
+        
+        # System status
+        status = stats.get('system_status', 'unknown')
+        status_color = "🟢" if status == "operational" else "🔴"
+        st.sidebar.write(f"**Status:** {status_color} {status.title()}")
+        
+        # GPT Model info
+        gpt_model = stats.get('gpt_model', 'Unknown')
+        st.sidebar.write(f"**GPT Model:** {gpt_model}")
+        
+        # Create visualization
+        if stats.get('total_chunks', 0) > 0:
+            # Simple bar chart
+            chart_data = pd.DataFrame({
+                'Metric': ['Total Chunks', 'Work Items'],
+                'Count': [stats.get('total_chunks', 0), stats.get('unique_workitems', 0)]
+            })
+            
+            fig = px.bar(
+                chart_data, 
+                x='Metric', 
+                y='Count',
+                color='Metric',
+                title="Data Overview",
+                color_discrete_map={'Total Chunks': '#0078d4', 'Work Items': '#28a745'}
+            )
+            fig.update_layout(
+                height=300,
+                showlegend=False,
+                title_x=0.5
+            )
+            st.sidebar.plotly_chart(fig, use_container_width=True)
+    else:
+        st.sidebar.error("❌ No data loaded")
+        st.sidebar.info("Please ensure embeddings are generated by running:")
+        st.sidebar.code("python embedding.py")
+
+def display_chat_history():
+    """Display and manage chat history"""
+    st.sidebar.header("💬 Recent Questions")
+    
+    # Initialize chat history in session state
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    
+    # Clear history button
+    if st.sidebar.button("🗑️ Clear History"):
+        st.session_state.chat_history = []
+        st.rerun()
+    
+    # Display recent questions (last 10)
+    recent_history = st.session_state.chat_history[-10:]
+    
+    if recent_history:
+        for i, (question, timestamp) in enumerate(reversed(recent_history)):
+            truncated_question = question[:40] + "..." if len(question) > 40 else question
+            if st.sidebar.button(f"🔄 {truncated_question}", key=f"history_{i}"):
+                st.session_state.current_question = question
+                st.rerun()
+    else:
+        st.sidebar.write("No recent questions yet.")
+
+def add_to_chat_history(question: str):
+    """Add a question to chat history"""
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.chat_history.append((question, timestamp))
+    
+    # Keep only last 50 questions
+    if len(st.session_state.chat_history) > 50:
+        st.session_state.chat_history = st.session_state.chat_history[-50:]
+
+def display_qa_interface(qa_system: ADOQASystem):
+    """Display the main Q&A interface"""
+    st.markdown('<div class="main-header">🔍 Azure DevOps Work Item Q&A Assistant</div>', unsafe_allow_html=True)
+    
+    # Mode selection
+    st.subheader("Choose Your Query Mode")
+    mode = st.radio(
+        "",
+        ["🤖 Smart Q&A", "🔍 Search by Criteria", "📋 Work Item Summary"],
+        horizontal=True
+    )
+    
+    if mode == "🤖 Smart Q&A":
+        display_smart_qa_mode(qa_system)
+    elif mode == "🔍 Search by Criteria":
+        display_search_mode(qa_system)
+    else:
+        display_summary_mode(qa_system)
+
+def display_smart_qa_mode(qa_system: ADOQASystem):
+    """Display the smart Q&A mode"""
+    st.subheader("🤖 Ask Questions About Your Work Items")
+    
+    # Suggested questions
+    st.markdown("**💡 Try these example questions:**")
+    
+    suggested_questions = [
+        "What are the current database issues?",
+        "Show me all high priority bugs",
+        "What tasks are assigned to the Finance Hub team?",
+        "Are there any authentication problems?", 
+        "What's the status of deployment related work items?",
+        "Which work items are still in progress?",
+        "What are the recent completed tasks?",
+        "Show me critical issues that need immediate attention"
+    ]
+    
+    # Display suggested questions in columns
+    cols = st.columns(2)
+    for i, question in enumerate(suggested_questions):
+        col = cols[i % 2]
+        if col.button(f"💡 {question}", key=f"suggested_{i}"):
+            st.session_state.current_question = question
+
+    # Query input
+    current_question = st.session_state.get('current_question', '')
+    query = st.text_area(
+        "**Your Question:**",
+        value=current_question,
+        height=100,
+        placeholder="Ask me anything about your Azure DevOps work items...",
+        key="main_query"
+    )
+    
+    # Advanced options in expander
+    with st.expander("⚙️ Advanced Search Options"):
+        col1, col2 = st.columns(2)
+        with col1:
+            top_k = st.slider("Number of relevant chunks", 1, 20, 5, help="More chunks = more context but slower response")
+            similarity_threshold = st.slider("Similarity threshold", 0.0, 1.0, 0.3, 0.1, help="Higher threshold = more relevant but fewer results")
+        with col2:
+            include_metadata = st.checkbox("Include work item metadata", True, help="Include title, state, assignee info")
+            show_sources = st.checkbox("Show source information", False, help="Display the chunks used to generate the answer")
+            temperature = st.slider("Response creativity", 0.0, 1.0, 0.2, 0.1, help="Higher = more creative, lower = more factual")
+    
+    # Main search button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        search_clicked = st.button("🚀 Ask Question", type="primary", use_container_width=True)
+    
+    # Process the query
+    if search_clicked and query.strip():
+        add_to_chat_history(query)
+        
+        with st.spinner("🔍 Searching work items and generating answer..."):
+            try:
+                result = qa_system.answer_question(
+                    query=query,
+                    top_k=top_k,
+                    similarity_threshold=similarity_threshold,
+                    include_metadata=include_metadata,
+                    temperature=temperature
+                )
+                
+                # Display results
+                display_qa_results(result, show_sources)
+                
+            except Exception as e:
+                st.error(f"❌ Error processing your question: {e}")
+
+def display_qa_results(result: Dict[str, Any], show_sources: bool = False):
+    """Display Q&A results with proper formatting"""
+    
+    # Question display
+    st.markdown(
+        f'<div class="question-box"><strong>❓ Your Question:</strong><br>{result["query"]}</div>', 
+        unsafe_allow_html=True
+    )
+    
+    # Answer display with confidence
+    confidence_html = format_confidence(result["confidence"])
+    st.markdown(
+        f'<div class="answer-box">'
+        f'<strong>🤖 Answer:</strong> <span style="float: right;">Confidence: {confidence_html}</span><br><br>'
+        f'{result["answer"]}</div>', 
+        unsafe_allow_html=True
+    )
+    
+    # Quick stats
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("📚 Sources Used", result["num_sources"])
+    with col2:
+        st.metric("🎯 Confidence", result["confidence"].title())
+    with col3:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        st.metric("⏰ Generated", timestamp)
+    
+    # Source information
+    if show_sources and result.get("sources"):
+        st.subheader("📚 Source Information")
+        
+        for i, source in enumerate(result["sources"], 1):
+            with st.expander(f"📄 Source {i}: Work Item #{source['workitem_id']} (Similarity: {source['similarity']})"):
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    st.write("**Work Item Details:**")
+                    st.write(f"• **ID:** {source['workitem_id']}")
+                    st.write(f"• **Title:** {source.get('title', 'N/A')}")
+                    st.write(f"• **State:** {source.get('state', 'N/A')}")
+                    st.write(f"• **Type:** {source.get('type', 'N/A')}")
+                    st.write(f"• **Assigned To:** {source.get('assigned_to', 'N/A')}")
+                
+                with col2:
+                    st.write("**Content Preview:**")
+                    st.write(source['content_preview'])
+
+def display_search_mode(qa_system: ADOQASystem):
+    """Display the search by criteria mode"""
+    st.subheader("🔍 Search Work Items by Criteria")
+    
+    # Search criteria input
+    criteria = st.text_input(
+        "**Search Criteria:**",
+        placeholder="e.g., Finance Hub, database, authentication, deployment, bug fixes...",
+        help="Enter keywords or phrases to find related work items"
+    )
+    
+    # Search options
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        top_k = st.slider("Max results", 1, 20, 10, key="search_top_k")
+    with col2:
+        group_by_workitem = st.checkbox("Group by work item", True, key="group_search")
+    with col3:
+        similarity_threshold = st.slider("Min similarity", 0.0, 1.0, 0.3, key="search_threshold")
+    
+    # Search button
+    if st.button("🔍 Search Work Items", type="primary") and criteria.strip():
+        with st.spinner("🔍 Searching work items..."):
+            try:
+                results = qa_system.search_workitems_by_criteria(
+                    criteria=criteria,
+                    top_k=top_k,
+                    group_by_workitem=group_by_workitem,
+                    similarity_threshold=similarity_threshold
+                )
+                
+                # Display search results
+                display_search_results(results)
+                
+            except Exception as e:
+                st.error(f"❌ Error during search: {e}")
+
+def display_search_results(results: Dict[str, Any]):
+    """Display search results"""
+    if results.get("found"):
+        st.success(f"✅ Found {results.get('count', 0)} results for '{results['criteria']}'")
+        
+        # Main answer
+        st.markdown(
+            f'<div class="answer-box">{results["answer"]}</div>', 
+            unsafe_allow_html=True
+        )
+        
+        # Detailed results if available
+        if results.get("workitems"):
+            st.subheader("📋 Detailed Work Item Results")
+            
+            for i, item in enumerate(results["workitems"], 1):
+                with st.expander(f"Work Item #{item['workitem_id']} - Similarity: {item['max_similarity']:.3f}"):
+                    col1, col2 = st.columns([1, 2])
+                    
+                    with col1:
+                        st.metric("Max Similarity", f"{item['max_similarity']:.3f}")
+                        st.metric("Avg Similarity", f"{item['avg_similarity']:.3f}")
+                        st.metric("Relevant Chunks", item['chunk_count'])
+                    
+                    with col2:
+                        st.write("**Most Relevant Content:**")
+                        if item.get('relevant_chunks'):
+                            top_chunk = item['relevant_chunks'][0]
+                            st.write(f"{top_chunk['content'][:300]}...")
+    else:
+        st.warning(f"No results found for '{results['criteria']}'. Try different keywords or lower the similarity threshold.")
+
+def display_summary_mode(qa_system: ADOQASystem):
+    """Display the work item summary mode"""
+    st.subheader("📋 Get Detailed Work Item Summary")
+    
+    # Work item ID input
+    workitem_id = st.text_input(
+        "**Work Item ID:**",
+        placeholder="e.g., 12345",
+        help="Enter the ID of the work item you want to summarize"
+    )
+    
+    # Summary button
+    if st.button("📋 Generate Summary", type="primary") and workitem_id.strip():
+        with st.spinner("📋 Generating comprehensive work item summary..."):
+            try:
+                summary = qa_system.get_workitem_summary(workitem_id)
+                
+                # Display summary results
+                display_summary_results(summary)
+                
+            except Exception as e:
+                st.error(f"❌ Error generating summary: {e}")
+
+def display_summary_results(summary: Dict[str, Any]):
+    """Display work item summary results"""
+    if summary.get("found"):
+        st.success(f"✅ Work Item #{summary['workitem_id']} found")
+        
+        # Metadata display
+        if summary.get("metadata"):
+            st.subheader("📊 Work Item Details")
+            metadata = summary["metadata"]
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if metadata.get('title'):
+                    st.write(f"**Title:** {metadata['title']}")
+                if metadata.get('state'):
+                    st.write(f"**State:** {metadata['state']}")
+            with col2:
+                if metadata.get('type'):
+                    st.write(f"**Type:** {metadata['type']}")
+                if metadata.get('assigned_to'):
+                    st.write(f"**Assigned To:** {metadata['assigned_to']}")
+            with col3:
+                if metadata.get('priority'):
+                    st.write(f"**Priority:** {metadata['priority']}")
+                st.metric("Total Chunks", summary.get('chunk_count', 0))
+        
+        # Summary content
+        st.subheader("📝 Comprehensive Summary")
+        st.markdown(
+            f'<div class="answer-box">{summary["answer"]}</div>', 
+            unsafe_allow_html=True
+        )
+    else:
+        st.error(f"❌ Work Item #{summary['workitem_id']} not found in the knowledge base.")
+        st.info("Make sure the work item ID is correct and that the data has been properly processed.")
+
+def main():
+    """Main application function"""
+    # Initialize session state
+    if 'current_question' not in st.session_state:
+        st.session_state.current_question = ""
+    
+    try:
+        # Load QA system
+        qa_system = load_qa_system()
+        
+        if qa_system is None:
+            st.error("❌ Failed to initialize the QA system. Please check your configuration.")
+            st.info("**Troubleshooting steps:**")
+            st.info("1. Ensure embeddings file exists: `stage/workitem_embeddings.json`")
+            st.info("2. Check Azure OpenAI credentials in `.env` file")
+            st.info("3. Run the data pipeline: `python embedding.py`")
+            return
+        
+        # Sidebar content
+        display_system_stats(qa_system)
+        st.sidebar.markdown("---")
+        display_chat_history()
+        
+        # Main content
+        display_qa_interface(qa_system)
+        
+        # Footer
+        st.markdown("---")
+        st.markdown(
+            f"""
+            <div style='text-align: center; color: #666666; padding: 1rem;'>
+                🚀 <strong>Azure DevOps Work Item Q&A System</strong><br>
+                Powered by RAG (Retrieval-Augmented Generation) | 
+                Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+    except Exception as e:
+        st.error(f"❌ Application error: {e}")
+        st.info("Please check the system logs and ensure all dependencies are properly installed.")
+
+if __name__ == "__main__":
+    main()

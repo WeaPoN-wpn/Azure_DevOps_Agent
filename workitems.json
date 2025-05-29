@@ -1,0 +1,74 @@
+[
+  {
+    "id": 235971,
+    "title": "PMR pipeline updated version",
+    "state": "In Progress",
+    "assigned_to": "Andrei Viaryshka C"
+  },
+  {
+    "id": 236599,
+    "title": "[PMR] [Model] Add PRE_FLAG_NAOU col and NAOU PRE measures",
+    "state": "Deployed to UAT",
+    "assigned_to": "Dzmitry Varabyou C"
+  },
+  {
+    "id": 238034,
+    "title": "[PMR] [TFS] Sync KO Historical pipeline with PMR Refresh",
+    "state": "In Progress",
+    "assigned_to": "Andrei Viaryshka C"
+  },
+  {
+    "id": 238906,
+    "title": "[Documentation] Document all the downstream access of Finance hub Data Products",
+    "state": "In Sprint Backlog",
+    "assigned_to": "Faiz Rahamat"
+  },
+  {
+    "id": 239338,
+    "title": "[PMR] POC to improve DQ report",
+    "state": "In Progress",
+    "assigned_to": "Dzmitry Varabyou C"
+  },
+  {
+    "id": 240359,
+    "title": "[MEM 2.0] Calculate CNPRE",
+    "state": "In Refinement",
+    "assigned_to": null
+  },
+  {
+    "id": 240360,
+    "title": "[MEM 2.0] [Backend] Bring in SUB_AREA_DESC column to FactMEM table",
+    "state": "Closed",
+    "assigned_to": "Kseniya Klitsunova C"
+  },
+  {
+    "id": 242620,
+    "title": "[Documentation] BRITE MEM 2.0 end-to-end technical documentation",
+    "state": "In Progress",
+    "assigned_to": "Faiz Rahamat"
+  },
+  {
+    "id": 242621,
+    "title": "[PMR] [Backend] Add column PRE_FLAG_NAOU into the DM_SCENARIO table",
+    "state": "Deployed to UAT",
+    "assigned_to": "Stanislau Hryhoryeu C"
+  },
+  {
+    "id": 242622,
+    "title": "[MEM 2.0] [Model] Add SUB_AREA_DESC column to frontend FactMEM table",
+    "state": "Closed",
+    "assigned_to": "Dzmitry Varabyou C"
+  },
+  {
+    "id": 242738,
+    "title": "PROD Deployment",
+    "state": "Closed",
+    "assigned_to": "Kseniya Klitsunova C"
+  },
+  {
+    "id": 243296,
+    "title": "[PMR] [Bug] Fix generated file name in ko historical",
+    "state": "Deployed to UAT",
+    "assigned_to": "Stanislau Hryhoryeu C"
+  }
+]

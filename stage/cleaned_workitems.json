@@ -1,0 +1,211 @@
+[
+  {
+    "id": 235971,
+    "title": "PMR pipeline updated version",
+    "state": "In Progress",
+    "assigned_to": "Andrei Viaryshka C",
+    "description": "TBD: details",
+    "comments": [
+      "ETA 20th May 2025"
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: PMR pipeline updated version\nDescription: TBD: details\nComments: ETA 20th May 2025\nState: In Progress\nAssigned to: Andrei Viaryshka C"
+  },
+  {
+    "id": 236599,
+    "title": "[PMR] [Model] Add PRE_FLAG_NAOU col and NAOU PRE measures",
+    "state": "Deployed to UAT",
+    "assigned_to": "Dzmitry Varabyou C",
+    "description": "We need to enable new measures for North America's PRE process. This is a combination between the 2 PRE versions we have today which use PRE_FLAG and PRE_FLAG_MONTHLY columns. To support this, we will create a new column in the Scenario table in P54 called PRE_FLAG_NAOU. Backend Change: Add new column PRE_FLAG_NAOU to dbo.PMR_DM_SCENARIO table P54 schema: Model Change: Bring in new column PRE_FLAG_NAOU to DimPMRScenario table Create new measures as below: PRE Amount USD (NAOU) = Amount USD where Scenario = PRE_FLAG_NAOU vs PRE (NAOU) = duplicate logic from 'vs PRE' and/or 'vs PRE (Monthly)' but with 'PRE Amount USD (NAOU)' vs PRE% (NAOU) =duplicate logic from 'vs PRE%' and/or 'vs PRE% (Monthly)' but with 'PRE Amount USD (NAOU)' Changes should apply to the all models (but hide measure & col in summarized model)",
+    "comments": [
+      "@Madeline Clounie New measures have been added to finhub_pmr_detailed_pkg in the 'Finance Hub UAT' and are ready for testing. After your confirmation, I'll add the measures to other models and deploy them to PROD.",
+      "@Vanessa Ma @Dzmitry Varabyou C - PRE_FLAG_NAOU column was added to the DM_SCENARIO table in P54"
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [
+      242621
+    ],
+    "image_files": [
+      "workitem_236599_1.png"
+    ],
+    "clean_text": "Title: [PMR] [Model] Add PRE_FLAG_NAOU col and NAOU PRE measures\nDescription: We need to enable new measures for North America's PRE process. This is a combination between the 2 PRE versions we have today which use PRE_FLAG and PRE_FLAG_MONTHLY columns. To support this, we will create a new column in the Scenario table in P54 called PRE_FLAG_NAOU. Backend Change: Add new column PRE_FLAG_NAOU to dbo.PMR_DM_SCENARIO table P54 schema: Model Change: Bring in new column PRE_FLAG_NAOU to DimPMRScenario table Create new measures as below: PRE Amount USD (NAOU) = Amount USD where Scenario = PRE_FLAG_NAOU vs PRE (NAOU) = duplicate logic from 'vs PRE' and/or 'vs PRE (Monthly)' but with 'PRE Amount USD (NAOU)' vs PRE% (NAOU) =duplicate logic from 'vs PRE%' and/or 'vs PRE% (Monthly)' but with 'PRE Amount USD (NAOU)' Changes should apply to the all models (but hide measure & col in summarized model)\nComments: @Madeline Clounie New measures have been added to finhub_pmr_detailed_pkg in the 'Finance Hub UAT' and are ready for testing. After your confirmation, I'll add the measures to other models and deploy them to PROD. @Vanessa Ma @Dzmitry Varabyou C - PRE_FLAG_NAOU column was added to the DM_SCENARIO table in P54\nState: Deployed to UAT\nAssigned to: Dzmitry Varabyou C"
+  },
+  {
+    "id": 238034,
+    "title": "[PMR] [TFS] Sync KO Historical pipeline with PMR Refresh",
+    "state": "In Progress",
+    "assigned_to": "Andrei Viaryshka C",
+    "description": "Background Pipeline PMR_Refresh_KO_Historical has been developed to ingest unit cases from PMR Summ Fact views in finhub serverless into the view dbo.PMR_FACT_KO_HISTORICALSee PMR KO Historical (Unit Cases Table aka TFS Accuracy Dashboard) - Overview for more information. Currently, the pipeline PMR_Refresh_KO_Historical does not have any configured triggers or schedule. It relies on adhoc trigger with input parameters for sc_id, year, month. For example, once actuals for April is final, we will trigger the pipeline to load for sc_id = OEP_Actuals, year = 2025, month = APR. Another example, once actuals for June and RE_JUN is final, we will trigger the pipeline twice. Once for sc_id OEP_Actuals, year = 2025, month = JUN. And one more for sc_id = RE_JUN, year = 2025.Note that if you do not input parameter value for month, it has been designed to pull for all 12 months. This is to make it easy for bulk pull or to load BP or RE values. Please review the pipeline for this logic in the update parameters activity. Addtional context:Data for up till MAR actuals / RE_MAR have been loaded via TFS Manual file via notebook US235740_upload_ko_historical_manual_file. These have been marked in dbo.PMR_FACT_KO_HISTORICAL as SOURCE = TFS_MANUAL_FILE. Going forward, data pulled via PMR_Refresh_KO_Historical will load into dbo.PMR_FACT_KO_HISTORICAL as SOURCE = PMR_EXTRACT. To Do Integrate PMR_Refresh_KO_Historical into PMR Refresh pipeline so that data in dbo.PMR_FACT_KO_HISTORICAL is always updated whenever there are changes coming in via PMR_Refresh Intention is so that we dont have to do any manual adhoc triggers and latest data will always be available in dbo.PMR_FACT_KO_HISTORICAL You may need a wrapper pipeline or additional pipelines e.g. a wrapper pipeline that takes in list of sc_id/year/month combination to come up with the input params to trigger PMR_Refresh_KO_Historical You may update/redesign PMR_Refresh_KO_Historical to better suit the overall objective if required. For any clarifications, you may reach out to Faiz or Dennis Questions What if i accidentally triggered PMR_Refresh_KO_Historical for past data thereby overwrite what has been uploaded via manual submission e.g. 2025 Jan Actuals?- Not an issue. Data for 2025 Jan Actuals would then be updated as pulled from PMR views with PMR_EXTRACT instead of manual file submission with TFS_MANUAL_FILE.- We can just rerun notebook US235740_upload_ko_historical_manual_file to reupload that data. Load logic is overwrite partition by sc_id, year, month so it will simply overwrite the data back What if there is no data coming via PMR pipeline in the particular run?- We should design it such that we dont run the rest of the PMR_Refresh_KO_Historical as no data needs to be updated. What if only a small amount of data is updated via PMR pipeline?- PMR_Refresh_KO_Historical needs to pull for the entire sc_id, year, month as load logic for dbo.PMR_FACT_KO_HISTORICAL is on partition overwrite for sc_id/year/month and not via LOG_TIME of specific rows/records Can i start working on this now?- You will likely need to wait/align for PMR refactored pipeline to finalise/complete before working on this US as changes are expected in new PMR Refresh pipeline What is the point of the current input parameter ingestion_timestamp in pipeline PMR_Refresh_KO_Historical?- It was added from the start with the intention to sync the pipeline into PMR Refresh so that ingestion timestamp can follow PMR Refresh and it will be easier to perform analysis or debug with the same timestamp values across PMR Refresh and PMR_Refresh_KO_Historical",
+    "comments": [
+      "implement after refactoring, add additional filter on Pre/Post/Draft",
+      "@Andrei Viaryshka C I've added in details. Please review when you have some time :)"
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: [PMR] [TFS] Sync KO Historical pipeline with PMR Refresh\nDescription: Background Pipeline PMR_Refresh_KO_Historical has been developed to ingest unit cases from PMR Summ Fact views in finhub serverless into the view dbo.PMR_FACT_KO_HISTORICALSee PMR KO Historical (Unit Cases Table aka TFS Accuracy Dashboard) - Overview for more information. Currently, the pipeline PMR_Refresh_KO_Historical does not have any configured triggers or schedule. It relies on adhoc trigger with input parameters for sc_id, year, month. For example, once actuals for April is final, we will trigger the pipeline to load for sc_id = OEP_Actuals, year = 2025, month = APR. Another example, once actuals for June and RE_JUN is final, we will trigger the pipeline twice. Once for sc_id OEP_Actuals, year = 2025, month = JUN. And one more for sc_id = RE_JUN, year = 2025.Note that if you do not input parameter value for month, it has been designed to pull for all 12 months. This is to make it easy for bulk pull or to load BP or RE values. Please review the pipeline for this logic in the update parameters activity. Addtional context:Data for up till MAR actuals / RE_MAR have been loaded via TFS Manual file via notebook US235740_upload_ko_historical_manual_file. These have been marked in dbo.PMR_FACT_KO_HISTORICAL as SOURCE = TFS_MANUAL_FILE. Going forward, data pulled via PMR_Refresh_KO_Historical will load into dbo.PMR_FACT_KO_HISTORICAL as SOURCE = PMR_EXTRACT. To Do Integrate PMR_Refresh_KO_Historical into PMR Refresh pipeline so that data in dbo.PMR_FACT_KO_HISTORICAL is always updated whenever there are changes coming in via PMR_Refresh Intention is so that we dont have to do any manual adhoc triggers and latest data will always be available in dbo.PMR_FACT_KO_HISTORICAL You may need a wrapper pipeline or additional pipelines e.g. a wrapper pipeline that takes in list of sc_id/year/month combination to come up with the input params to trigger PMR_Refresh_KO_Historical You may update/redesign PMR_Refresh_KO_Historical to better suit the overall objective if required. For any clarifications, you may reach out to Faiz or Dennis Questions What if i accidentally triggered PMR_Refresh_KO_Historical for past data thereby overwrite what has been uploaded via manual submission e.g. 2025 Jan Actuals?- Not an issue. Data for 2025 Jan Actuals would then be updated as pulled from PMR views with PMR_EXTRACT instead of manual file submission with TFS_MANUAL_FILE.- We can just rerun notebook US235740_upload_ko_historical_manual_file to reupload that data. Load logic is overwrite partition by sc_id, year, month so it will simply overwrite the data back What if there is no data coming via PMR pipeline in the particular run?- We should design it such that we dont run the rest of the PMR_Refresh_KO_Historical as no data needs to be updated. What if only a small amount of data is updated via PMR pipeline?- PMR_Refresh_KO_Historical needs to pull for the entire sc_id, year, month as load logic for dbo.PMR_FACT_KO_HISTORICAL is on partition overwrite for sc_id/year/month and not via LOG_TIME of specific rows/records Can i start working on this now?- You will likely need to wait/align for PMR refactored pipeline to finalise/complete before working on this US as changes are expected in new PMR Refresh pipeline What is the point of the current input parameter ingestion_timestamp in pipeline PMR_Refresh_KO_Historical?- It was added from the start with the intention to sync the pipeline into PMR Refresh so that ingestion timestamp can follow PMR Refresh and it will be easier to perform analysis or debug with the same timestamp values across PMR Refresh and PMR_Refresh_KO_Historical\nComments: implement after refactoring, add additional filter on Pre/Post/Draft @Andrei Viaryshka C I've added in details. Please review when you have some time :)\nState: In Progress\nAssigned to: Andrei Viaryshka C"
+  },
+  {
+    "id": 238906,
+    "title": "[Documentation] Document all the downstream access of Finance hub Data Products",
+    "state": "In Sprint Backlog",
+    "assigned_to": "Faiz Rahamat",
+    "description": "Background: Recently, we observed that Finance Hub (Finhub) is being increasingly leveraged across multiple applications, including IFB and TFS. While at the consumer level, the PMR model remains the primary data source complete with its own Row-Level Security (RLS), Finhub is also directly integrated into several products such as: TFS Dashboard Accuracy Dashboard IFB Finhub access is currently managed through a combination of SQL user accounts and Azure Active Directory (AD) groups within the serverless SQL pool. Objective: This User Story aims to catalogue and document all access to Finhub across databases, with the goals of: Enhancing transparency of access controls Ensuring timely communication during schema or permission updates Establishing a single source of truth for access auditing Scope Includes: All database-level or table-level access to Finhub Identification of associated AD groups or SQL users Mapping environments and products consuming Finhub data Proposed Documentation Format (to be stored in Azure DevOps Wiki): FieldDescriptionDB Name Name of the database being accessed Table Name(s) Specific tables (only if <5-6 tables; otherwise, document at DB level) Product Name Product integrating with Finhub (e.g., PMR, TFS, Accuracy Dashboard, IFB) Access Type Type of access (SQL user or AD Group) AD Group or SQL Username Identifier for access AD Group Owner Owner/contact of the AD group Environment Environment context (Dev, Test, Prod) Application/Product Name The specific application using the data Above proposed structure can be further enhanced. cc @Faiz Rahamat, @Ying Le Dennis Lee, @Andrei Viaryshka C @Runfeng Han",
+    "comments": [],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: [Documentation] Document all the downstream access of Finance hub Data Products\nDescription: Background: Recently, we observed that Finance Hub (Finhub) is being increasingly leveraged across multiple applications, including IFB and TFS. While at the consumer level, the PMR model remains the primary data source complete with its own Row-Level Security (RLS), Finhub is also directly integrated into several products such as: TFS Dashboard Accuracy Dashboard IFB Finhub access is currently managed through a combination of SQL user accounts and Azure Active Directory (AD) groups within the serverless SQL pool. Objective: This User Story aims to catalogue and document all access to Finhub across databases, with the goals of: Enhancing transparency of access controls Ensuring timely communication during schema or permission updates Establishing a single source of truth for access auditing Scope Includes: All database-level or table-level access to Finhub Identification of associated AD groups or SQL users Mapping environments and products consuming Finhub data Proposed Documentation Format (to be stored in Azure DevOps Wiki): FieldDescriptionDB Name Name of the database being accessed Table Name(s) Specific tables (only if <5-6 tables; otherwise, document at DB level) Product Name Product integrating with Finhub (e.g., PMR, TFS, Accuracy Dashboard, IFB) Access Type Type of access (SQL user or AD Group) AD Group or SQL Username Identifier for access AD Group Owner Owner/contact of the AD group Environment Environment context (Dev, Test, Prod) Application/Product Name The specific application using the data Above proposed structure can be further enhanced. cc @Faiz Rahamat, @Ying Le Dennis Lee, @Andrei Viaryshka C @Runfeng Han\nState: In Sprint Backlog\nAssigned to: Faiz Rahamat"
+  },
+  {
+    "id": 239338,
+    "title": "[PMR] POC to improve DQ report",
+    "state": "In Progress",
+    "assigned_to": "Dzmitry Varabyou C",
+    "description": "This User Story aims to improve the current PMR Data Quality model & report to make it more informative and easier to consume. Some points: better consumption layout extent to other data sources build alert for mismatched data Home - Automatic Data Quality check - Power BI",
+    "comments": [],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: [PMR] POC to improve DQ report\nDescription: This User Story aims to improve the current PMR Data Quality model & report to make it more informative and easier to consume. Some points: better consumption layout extent to other data sources build alert for mismatched data Home - Automatic Data Quality check - Power BI\nState: In Progress\nAssigned to: Dzmitry Varabyou C"
+  },
+  {
+    "id": 240359,
+    "title": "[MEM 2.0] Calculate CNPRE",
+    "state": "In Refinement",
+    "assigned_to": null,
+    "description": "",
+    "comments": [
+      "@ @ pls use this US for CNPRE calculation. Thank you."
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: [MEM 2.0] Calculate CNPRE\nComments: @ @ pls use this US for CNPRE calculation. Thank you.\nState: In Refinement"
+  },
+  {
+    "id": 240360,
+    "title": "[MEM 2.0] [Backend] Bring in SUB_AREA_DESC column to FactMEM table",
+    "state": "Closed",
+    "assigned_to": "Kseniya Klitsunova C",
+    "description": "Currently for FactMemre table, only Sub Area Code is brought in, but end user need Sub Area Description to make sense of the data. This User Story is to bring in Sub Area Description column to FactMemre table.",
+    "comments": [
+      "@Andrei Viaryshka C @Kseniya Klitsunova C As aligned with Maddy yesterday, if user does not populate the column with any values, it is fine. We will proceed to add the SUB_AREA_DESC column to expected ou supplemental schema and file format.@Kavish Khandelwal",
+      "@Faiz Rahamat @Kseniya Klitsunova C I think the questions is if we can expect that supplemental files provided by our users will have this column. It impacts processing logic. Do we need to use this column and fail if the column does not exist in the provided file?",
+      "Discussed with @Kseniya Klitsunova CLets add the SUB_AREA_DESC for OU Supplemental schema as well. Even though OU supplemental isnt active at the moment. Else in the future it will be another backlog in backend.FYI SUB_AREA is not used in gc supplemental so in final union view, rows from gc supp will always have SUB_AREA and SUB_AREA_DESC blankcc @Andrei Viaryshka C",
+      "@Faiz Rahamat Do we expect that SUB_AREA_DESC can be provided in supplemental files?CC @Andrei Viaryshka C"
+    ],
+    "parent_work_items": [],
+    "child_work_items": [
+      242738
+    ],
+    "related_work_items": [],
+    "image_files": [
+      "workitem_240360_1.png"
+    ],
+    "clean_text": "Title: [MEM 2.0] [Backend] Bring in SUB_AREA_DESC column to FactMEM table\nDescription: Currently for FactMemre table, only Sub Area Code is brought in, but end user need Sub Area Description to make sense of the data. This User Story is to bring in Sub Area Description column to FactMemre table.\nComments: @Andrei Viaryshka C @Kseniya Klitsunova C As aligned with Maddy yesterday, if user does not populate the column with any values, it is fine. We will proceed to add the SUB_AREA_DESC column to expected ou supplemental schema and file format.@Kavish Khandelwal @Faiz Rahamat @Kseniya Klitsunova C I think the questions is if we can expect that supplemental files provided by our users will have this column. It impacts processing logic. Do we need to use this column and fail if the column does not exist in the provided file? Discussed with @Kseniya Klitsunova CLets add the SUB_AREA_DESC for OU Supplemental schema as well. Even though OU supplemental isnt active at the moment. Else in the future it will be another backlog in backend.FYI SUB_AREA is not used in gc supplemental so in final union view, rows from gc supp will always have SUB_AREA and SUB_AREA_DESC blankcc @Andrei Viaryshka C @Faiz Rahamat Do we expect that SUB_AREA_DESC can be provided in supplemental files?CC @Andrei Viaryshka C\nState: Closed\nAssigned to: Kseniya Klitsunova C"
+  },
+  {
+    "id": 242620,
+    "title": "[Documentation] BRITE MEM 2.0 end-to-end technical documentation",
+    "state": "In Progress",
+    "assigned_to": "Faiz Rahamat",
+    "description": "Post release with now stable BRITE runs, we need a technical document to ensure understanding of BRITE architecture, flow, logic and transformations end-to-end. Refer to IFB format for similar technical formats and reference.",
+    "comments": [],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: [Documentation] BRITE MEM 2.0 end-to-end technical documentation\nDescription: Post release with now stable BRITE runs, we need a technical document to ensure understanding of BRITE architecture, flow, logic and transformations end-to-end. Refer to IFB format for similar technical formats and reference.\nState: In Progress\nAssigned to: Faiz Rahamat"
+  },
+  {
+    "id": 242621,
+    "title": "[PMR] [Backend] Add column PRE_FLAG_NAOU into the DM_SCENARIO table",
+    "state": "Deployed to UAT",
+    "assigned_to": "Stanislau Hryhoryeu C",
+    "description": "With reference to User Story 236599 [PMR] [Model] Add col PRE_FLAG_NAOU in frontend - NAOU PRE requirements for PMRColumn PRE_FLAG_NAOU is now available in DM SCENARIO table in P54. TO DOUpdate table schema and load the column into finhub backend",
+    "comments": [
+      "PROD Deployment checklist:1) Deploy fhb-tccc-synapse-sql - Release-149 - Pipelines2) Deploy fhb-tccc-synapse-workspace - Release-512 - Pipelines3) Run 0_Scripts_to_be_run_before_synapse_db_deployment/PMR_create_views notebook to update PMR_DM_SCENARIO view with new column",
+      "@Faiz Rahamat @Dzmitry Varabyou C PRE_FLAG_NAOU is now available on UAT",
+      "@Faiz Rahamat @Dzmitry Varabyou C PRE_FLAG_NAOU is now available in PMR_DM_SCENARIO view in DEV environment"
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [
+      236599
+    ],
+    "image_files": [
+      "workitem_242621_1.png",
+      "workitem_242621_2.png"
+    ],
+    "clean_text": "Title: [PMR] [Backend] Add column PRE_FLAG_NAOU into the DM_SCENARIO table\nDescription: With reference to User Story 236599 [PMR] [Model] Add col PRE_FLAG_NAOU in frontend - NAOU PRE requirements for PMRColumn PRE_FLAG_NAOU is now available in DM SCENARIO table in P54. TO DOUpdate table schema and load the column into finhub backend\nComments: PROD Deployment checklist:1) Deploy fhb-tccc-synapse-sql - Release-149 - Pipelines2) Deploy fhb-tccc-synapse-workspace - Release-512 - Pipelines3) Run 0_Scripts_to_be_run_before_synapse_db_deployment/PMR_create_views notebook to update PMR_DM_SCENARIO view with new column @Faiz Rahamat @Dzmitry Varabyou C PRE_FLAG_NAOU is now available on UAT @Faiz Rahamat @Dzmitry Varabyou C PRE_FLAG_NAOU is now available in PMR_DM_SCENARIO view in DEV environment\nState: Deployed to UAT\nAssigned to: Stanislau Hryhoryeu C"
+  },
+  {
+    "id": 242622,
+    "title": "[MEM 2.0] [Model] Add SUB_AREA_DESC column to frontend FactMEM table",
+    "state": "Closed",
+    "assigned_to": "Dzmitry Varabyou C",
+    "description": "With reference to User Story 240360 [MEM 2.0] Bring in SUB_AREA_DESC column to FactMEM table TO DO After the backend user story has been completed, model team will bring the column to the frontend for end user",
+    "comments": [
+      "@Madeline Clounie Thank you! The new column is available in production.",
+      "@Dzmitry Varabyou C you can move to production. thanks!",
+      "@Madeline Clounie, The column has been added to finhub_pmr in UAT and is ready for testing. If everything is good, we will move it to production on Monday."
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [],
+    "clean_text": "Title: [MEM 2.0] [Model] Add SUB_AREA_DESC column to frontend FactMEM table\nDescription: With reference to User Story 240360 [MEM 2.0] Bring in SUB_AREA_DESC column to FactMEM table TO DO After the backend user story has been completed, model team will bring the column to the frontend for end user\nComments: @Madeline Clounie Thank you! The new column is available in production. @Dzmitry Varabyou C you can move to production. thanks! @Madeline Clounie, The column has been added to finhub_pmr in UAT and is ready for testing. If everything is good, we will move it to production on Monday.\nState: Closed\nAssigned to: Dzmitry Varabyou C"
+  },
+  {
+    "id": 242738,
+    "title": "PROD Deployment",
+    "state": "Closed",
+    "assigned_to": "Kseniya Klitsunova C",
+    "description": "Releases:  dmiv2-etl: FHB_dmiv2-etl - Release-188 - Pipelines workspace: fhb-tccc-synapse-workspace - Release-506 - Pipelines TODO: Run BRITE_MEM_create_views notebook Run MEM_Master pipeline with default parameters Review SUB_AREA_DESC col",
+    "comments": [
+      "Brite mem views were recreated with SUB_AREA_DESC column. MEM_Master pipeline was triggered and processed successfullySUB_AREA_DESC col and data available on PRODCC @Andrei Viaryshka C @Faiz Rahamat @Vanessa Ma"
+    ],
+    "parent_work_items": [
+      240360
+    ],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [
+      "workitem_242738_1.png"
+    ],
+    "clean_text": "Title: PROD Deployment\nDescription: Releases:  dmiv2-etl: FHB_dmiv2-etl - Release-188 - Pipelines workspace: fhb-tccc-synapse-workspace - Release-506 - Pipelines TODO: Run BRITE_MEM_create_views notebook Run MEM_Master pipeline with default parameters Review SUB_AREA_DESC col\nComments: Brite mem views were recreated with SUB_AREA_DESC column. MEM_Master pipeline was triggered and processed successfullySUB_AREA_DESC col and data available on PRODCC @Andrei Viaryshka C @Faiz Rahamat @Vanessa Ma\nState: Closed\nAssigned to: Kseniya Klitsunova C"
+  },
+  {
+    "id": 243296,
+    "title": "[PMR] [Bug] Fix generated file name in ko historical",
+    "state": "Deployed to UAT",
+    "assigned_to": "Stanislau Hryhoryeu C",
+    "description": "In pipeline PMR_Refresh_KO_Historical, there is a logic to populate file name via activity Set file_nameThe file name uses some parameters such as timestamp, sc id, year, month etc to generate the file name However, there is a bug because: file_name takes into account timestamp, but there is no arrow connecting the Set ingestion timestamp activity and the Set file_name activity. This can sometimes result in timestamp value being blank if the Set file_name activity completes quickly month is an optional parameter, but there is a default value DEC set. This causes the parameter to default as DEC even when left blank. Resulting in unintended query and file name for DEC TO DOAdd arrow to start file_name activity only after timestamp Update default parameter value for month as blank",
+    "comments": [
+      "Reconfigured the pipeline according to description. \"Set file_name\" activity is now depends on \"Set ingestion timestamp\" activity. Default value for month is set to blank.Test with month set: Test with empty month:"
+    ],
+    "parent_work_items": [],
+    "child_work_items": [],
+    "related_work_items": [],
+    "image_files": [
+      "workitem_243296_1.png",
+      "workitem_243296_2.png",
+      "workitem_243296_3.png",
+      "workitem_243296_4.png",
+      "workitem_243296_5.png",
+      "workitem_243296_6.png",
+      "workitem_243296_7.png",
+      "workitem_243296_8.png"
+    ],
+    "clean_text": "Title: [PMR] [Bug] Fix generated file name in ko historical\nDescription: In pipeline PMR_Refresh_KO_Historical, there is a logic to populate file name via activity Set file_nameThe file name uses some parameters such as timestamp, sc id, year, month etc to generate the file name However, there is a bug because: file_name takes into account timestamp, but there is no arrow connecting the Set ingestion timestamp activity and the Set file_name activity. This can sometimes result in timestamp value being blank if the Set file_name activity completes quickly month is an optional parameter, but there is a default value DEC set. This causes the parameter to default as DEC even when left blank. Resulting in unintended query and file name for DEC TO DOAdd arrow to start file_name activity only after timestamp Update default parameter value for month as blank\nComments: Reconfigured the pipeline according to description. \"Set file_name\" activity is now depends on \"Set ingestion timestamp\" activity. Default value for month is set to blank.Test with month set: Test with empty month:\nState: Deployed to UAT\nAssigned to: Stanislau Hryhoryeu C"
+  }
+]
