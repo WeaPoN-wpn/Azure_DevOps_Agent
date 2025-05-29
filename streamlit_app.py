@@ -200,7 +200,7 @@ def add_to_chat_history(question: str):
 
 def display_qa_interface(qa_system: ADOQASystem):
     """Display the main Q&A interface"""
-    st.markdown('<div class="main-header">🔍 Azure DevOps Work Item Q&A Assistant</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🔍 Azure DevOps Agent</div>', unsafe_allow_html=True)
     
     # Mode selection
     st.subheader("Choose Your Query Mode")
