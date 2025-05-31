@@ -4,6 +4,8 @@ This project provides a complete **Retrieval-Augmented Generation (RAG) system**
 
 ## Features
 
+![Web UI](figs/web_ui.png)
+
 ### 🌐 **Streamlit Web Interface**
 - **Smart Q&A Mode**: Ask natural language questions about work items with confidence scoring
 - **Search by Criteria Mode**: Find work items using specific filters (assignee, status, type, priority)
